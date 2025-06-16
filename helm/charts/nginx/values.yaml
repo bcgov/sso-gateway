@@ -2,7 +2,7 @@ enabled: true
 replicaCount: 1
 
 image:
-  repository: "ghcr.io/spencercrose/sso-gateway-proxy"
+  repository: "ghcr.io/bcgov/sso-gateway-proxy"
   tag: latest
   pullPolicy: IfNotPresent
 
