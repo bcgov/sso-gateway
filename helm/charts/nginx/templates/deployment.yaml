@@ -1,0 +1,121 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "ssoGateway.fullname" . }}-proxy
+  labels:
+    {{- include "ssoGateway.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "ssoGateway.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "ssoGateway.labels" . | nindent 8 }}
+	{{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ .Values.global.serviceAccount.name }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: health-check
+              containerPort: {{ .Values.service.ports.http }}
+              protocol: TCP
+            - name: proxy-traffic
+              containerPort: {{ .Values.service.ports.https }}
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: health-check
+            initialDelaySeconds: {{ .Values.probes.liveness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.liveness.periodSeconds }}
+            timeoutSeconds: {{ .Values.probes.liveness.timeoutSeconds }}
+            failureThreshold: {{ .Values.probes.liveness.failureThreshold }}
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: health-check
+            initialDelaySeconds: {{ .Values.probes.liveness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.liveness.periodSeconds }}
+            timeoutSeconds: {{ .Values.probes.liveness.timeoutSeconds }}
+            failureThreshold: {{ .Values.probes.liveness.failureThreshold }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+
+          volumeMounts:
+            - name: empty-dir
+              mountPath: /tmp
+              subPath: tmp-dir
+            - name: nginx-run
+              mountPath: /var/run
+            - name: nginx-conf
+              mountPath: /etc/nginx/conf.d/default.conf
+              subPath: nginx.conf 
+            - name: sso-gateway-nginx-proxy-server-conf
+              mountPath: /etc/nginx/conf.d/server-blocks.conf
+              subPath: server-blocks.conf 
+              readOnly: true
+            # - name: certificate
+            #   mountPath: /certs
+            - name: nginx-cache
+              mountPath: /var/cache/nginx
+
+      volumes:
+        - name: empty-dir
+          emptyDir: {}
+        - name: nginx-run
+          emptyDir: {}
+        # - name: certificate
+        #   secret:
+        #     secretName: proxy-nginx-tls
+        #     items:
+        #       - key: tls.crt
+        #         path: server.crt
+        #       - key: tls.key
+        #         path: server.key
+        #     defaultMode: 420
+        - name: nginx-conf
+          configMap:
+            name: sso-gateway-nginx-config
+        - name: sso-gateway-nginx-proxy-server-conf
+          configMap:
+            name: sso-gateway-nginx-proxy-server-conf
+            defaultMode: 0644
+        - name: nginx-cache
+          emptyDir: {}
+
+      {{- if .Values.autoscaling.enabled }}
+      autoscaling:
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

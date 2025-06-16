@@ -1,0 +1,112 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "ssoGateway.fullname" . }}-store
+  labels:
+    {{- include "ssoGateway.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  revisionHistoryLimit: 0
+  selector:
+    matchLabels:
+      {{- include "ssoGateway.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+      {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        # 1. Vault injector configuration
+        vault.hashicorp.com/agent-inject: 'true'
+        # set to 'true' if you are going to connect and query vault from your application
+        vault.hashicorp.com/agent-inject-token: 'false' 
+        # this makes sure the secret vault will only change during pod restart
+        vault.hashicorp.com/agent-pre-populate-only: 'true' 
+        # Must match cluster. Use one of: k8s-silver, k8s-gold, k8s-golddr, k8s-emerald
+        vault.hashicorp.com/auth-path: auth/k8s-{{ .Values.global.cluster }}  
+        vault.hashicorp.com/namespace: platform-services
+        # licenseplate-nonprod or licenseplate-prod are your options
+        vault.hashicorp.com/role: {{ .Values.global.vault.role }} 
+        # - The value is the path in Vault where the secret is located.
+        vault.hashicorp.com/agent-inject-secret-redis-password: {{ .Values.global.licenseplate }}-{{ .Values.global.vault.engine }}/{{ .Values.vault.secret }}
+        # - The template Vault Agent should use for rendering a secret:
+        vault.hashicorp.com/agent-inject-template-redis-password: |
+          {{`{{- with secret `}}"{{ .Values.global.licenseplate }}-{{ .Values.global.vault.engine }}/{{ .Values.vault.secret }}"{{` }}
+          {{ .Data.data.password }}
+          {{- end `}} }}
+      labels:
+        {{- include "ssoGateway.labels" . | nindent 8 }}
+	{{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ .Values.global.serviceAccount.name }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: redis
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: redis
+              containerPort: {{ .Values.service.port }}
+              protocol: TCP
+          livenessProbe:
+            tcpSocket:
+              port: {{ .Values.service.port }}
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            tcpSocket:
+              port: {{ .Values.service.port }}
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          command: ["/bin/sh"]
+          args:
+            - -c
+            - |
+              echo "INFO: Redis container starting entrypoint..."
+              if [ -s /vault/secrets/redis-password ]; then
+                SECRET_CONTENT=$(cat /vault/secrets/redis-password)
+                export REDIS_PASSWORD=$(echo "${SECRET_CONTENT}" | tr -d '\n\r ')
+                echo "INFO: Password loaded from Vault secret. Length: ${#REDIS_PASSWORD}"
+              else
+                echo "ERROR: /vault/secrets/redis-password is empty or does not exist. Exiting."
+                exit 1
+              fi
+
+              if [ -z "${REDIS_PASSWORD}" ]; then
+                echo "ERROR: REDIS_PASSWORD variable is empty after loading from secret. Exiting."
+                exit 1
+              fi
+
+              echo "INFO: Executing redis-server..."
+              exec redis-server --requirepass "${REDIS_PASSWORD}"
+
+          volumeMounts:
+            - name: redis-data
+              mountPath: /data
+      volumes:
+        - name: redis-data
+          persistentVolumeClaim:
+            claimName: {{ include "ssoGateway.fullname" . }}-pvc
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

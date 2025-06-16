@@ -1,0 +1,25 @@
+// tsconfig.json
+{
+  "compilerOptions": {
+    "target": "ES2022",                /* Specify ECMAScript target version */
+    "module": "ESNext",                /* Specify module code generation */
+    "moduleResolution": "node",        /* Resolve modules using Node.js resolution logic */
+    "lib": ["ES2022", "DOM"],          /* Specify a library of global API's available in the project */
+    "allowJs": true,                   /* Allow JavaScript files to be compiled */
+    "outDir": "./dist",                /* Redirect output structure to the directory */
+    "rootDir": "./src",                /* Specify the root directory of input files */
+    "strict": true,                    /* Enable all strict type-checking options */
+    "esModuleInterop": true,           /* Emit additional JavaScript to ease support for importing CommonJS modules */
+    "skipLibCheck": true,              /* Skip type checking of declaration files */
+    "forceConsistentCasingInFileNames": true, /* Ensure that casing of filenames is consistent */
+    "resolveJsonModule": true,         /* Allows importing modules with a .json extension */
+    "sourceMap": true                  /* Generates corresponding .map file */
+  },
+  "include": [
+    "**/*.ts"                          /* Include all .ts files */
+  ],
+  "exclude": [
+    "node_modules",                    /* Exclude node_modules directory */
+    "dist"                             /* Exclude the output directory */
+  ]
+}

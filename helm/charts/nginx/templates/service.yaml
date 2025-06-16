@@ -1,0 +1,35 @@
+{{- if and .Values.enabled (not .Values.ingress.enabled) -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "ssoGateway.fullname" . }}-svc
+  labels:
+    {{- include "ssoGateway.labels" . | nindent 4 }}
+    app.kubernetes.io/component: nginx-proxy
+  {{- with .Values.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - name: http-app
+      protocol: TCP
+      port: 80
+      targetPort: proxy-traffic
+    - name: https-app
+      protocol: TCP
+      port: 443
+      targetPort: proxy-traffic
+    - name: health
+      protocol: TCP
+      port: 8080
+      targetPort: health-check
+    - name: proxy-direct-8081
+      protocol: TCP
+      port: 8081
+      targetPort: proxy-traffic
+  selector:
+    app.kubernetes.io/instance: sso-gateway
+    app.kubernetes.io/name: nginx
+{{- end }}

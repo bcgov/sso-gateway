@@ -1,0 +1,147 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "ssoGateway.fullname" . }}-client
+  labels:
+    {{- include "ssoGateway.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.ssoClient.autoscaling.enabled }}
+  replicas: {{ .Values.ssoClient.replicaCount }}
+  {{- end }}
+  revisionHistoryLimit: 1
+  selector:
+    matchLabels:
+      {{- include "ssoGateway.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        # 1. Vault injector configuration
+        vault.hashicorp.com/agent-inject: 'true'
+        # set to 'true' if you are going to connect and query vault from your application
+        vault.hashicorp.com/agent-inject-token: 'false' 
+        # this makes sure the secret vault will only change during pod restart
+        vault.hashicorp.com/agent-pre-populate-only: 'true' 
+        # Must match cluster. Use one of: k8s-silver, k8s-gold, k8s-golddr, k8s-emerald
+        vault.hashicorp.com/auth-path: auth/k8s-{{ .Values.global.cluster }}  
+        vault.hashicorp.com/namespace: platform-services
+        # licenseplate-nonprod or licenseplate-prod are your options
+        vault.hashicorp.com/role: {{ .Values.global.vault.role }} 
+        # - The value is the path in Vault where the secret is located.
+        vault.hashicorp.com/agent-inject-secret-secrets: {{ .Values.global.licenseplate }}-{{ .Values.global.vault.engine }}/{{ .Values.ssoClient.vault.secret }}
+        # - The template Vault Agent should use for rendering a secret:
+        vault.hashicorp.com/agent-inject-template-secrets: |
+          {{`{{- with secret `}}"{{ .Values.global.licenseplate }}-{{ .Values.global.vault.engine }}/{{ .Values.ssoClient.vault.secret }}"{{` }}
+          {{- range $k, $v := .Data.data }}
+          {{ $k }}={{ $v }}{{ end -}}
+          {{- end `}} }}
+        # - The value is the path in Vault where the secret is located.
+        vault.hashicorp.com/agent-inject-secret-redis-password: {{ .Values.global.licenseplate }}-{{ .Values.global.vault.engine }}/{{ .Values.redis.vault.secret }}
+        # - The template Vault Agent should use for rendering a secret:
+        vault.hashicorp.com/agent-inject-template-redis-password: |
+          {{`{{- with secret `}}"{{ .Values.global.licenseplate }}-{{ .Values.global.vault.engine }}/{{ .Values.redis.vault.secret }}"{{` }}
+          {{ .Data.data.password }}
+          {{- end `}} }}
+      {{- with .Values.ssoClient.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "ssoGateway.labels" . | nindent 8 }}
+        {{- with .Values.ssoClient.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.ssoClient.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ .Values.global.serviceAccount.name }}
+      securityContext:
+        {{- toYaml .Values.ssoClient.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          command: ["/bin/sh"]
+          args:
+            - -c
+            - |
+              echo "INFO: SSO Client container starting entrypoint..."
+              if [ -s /vault/secrets/redis-password ]; then
+                SECRET_CONTENT=$(cat /vault/secrets/redis-password)
+                export REDIS_PASSWORD=$(echo "${SECRET_CONTENT}" | tr -d '\n\r ')
+                echo "INFO: Redis Password loaded from Vault secret. Length: ${#REDIS_PASSWORD}"
+              else
+                echo "ERROR: /vault/secrets/redis-password is empty or does not exist. Exiting."
+                exit 1
+              fi
+
+              if [ -z "${REDIS_PASSWORD}" ]; then
+                echo "ERROR: REDIS_PASSWORD variable is empty after loading from secret. Exiting."
+                exit 1
+              fi
+
+              exec npm start
+          securityContext:
+            {{- toYaml .Values.ssoClient.securityContext | nindent 12 }}
+          image: {{ .Values.ssoClient.image.repository }}:{{ .Values.ssoClient.image.tag }}
+          imagePullPolicy: {{ .Values.ssoClient.image.pullPolicy }} 
+          ports: 
+            - name: http
+              containerPort: {{ .Values.ssoClient.service.port }}
+              protocol: TCP
+          {{- if .Values.ssoClient.probes.liveness.enabled }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: {{ .Values.ssoClient.probes.liveness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.ssoClient.probes.liveness.periodSeconds }}
+            timeoutSeconds: {{ .Values.ssoClient.probes.liveness.timeoutSeconds }}
+            failureThreshold: {{ .Values.ssoClient.probes.liveness.failureThreshold }}
+          {{- end }}
+          {{- if .Values.ssoClient.probes.readiness.enabled }}
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: {{ .Values.ssoClient.probes.readiness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.ssoClient.probes.readiness.periodSeconds }}
+            timeoutSeconds: {{ .Values.ssoClient.probes.readiness.timeoutSeconds }}
+            failureThreshold: {{ .Values.ssoClient.probes.readiness.failureThreshold }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.ssoClient.resources | nindent 12 }}
+          env:
+            {{- if .Values.ssoClient.env }} 
+            {{- toYaml .Values.ssoClient.env | trimSuffix "\n" | nindent 12 }}
+            {{- end }}
+            - name: SSO_CLIENT_PORT
+              value: {{  .Values.ssoClient.service.port | quote }}
+            - name: NGINX_PROXY_URL
+              value: http://{{ include "ssoGateway.fullname" . }}-nginx-svc
+            - name: REDIS_STORE_URL
+              value: redis://{{ include "ssoGateway.fullname" . }}-redis-svc:{{ .Values.redis.service.port }}
+            - name: REDIRECT_URL
+              value: http://{{ include "ssoGateway.fullname" . }}-client-svc:{{ .Values.ssoClient.service.port }}/authn/callback
+            - name: VAULT_CONFIG_PATH
+              value: {{  .Values.global.vault.containerPath | quote }}
+          envFrom:
+            {{- toYaml .Values.ssoClient.envFrom | nindent 12 }}
+          {{- with .Values.ssoClient.volumeMounts }}
+          volumeMounts:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      {{- with .Values.ssoClient.volumes }}
+      volumes:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.ssoClient.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.ssoClient.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.ssoClient.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

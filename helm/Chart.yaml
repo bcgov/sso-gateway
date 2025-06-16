@@ -1,0 +1,14 @@
+apiVersion: v2
+name: sso-gateway
+description: A Helm chart for deploying an SSO client app with NGINX reverse proxy and Redis session store.
+type: application
+version: 0.2.0
+appVersion: "2.0.1"
+icon: https://upload.wikimedia.org/wikipedia/commons/thumb/d/d9/Node.js_logo.svg/590px-Node.js_logo.svg.png
+dependencies:
+  - name: redis
+    version: 14.0.0
+    repository: file://./charts/redis
+  - name: nginx
+    version: 1.0.0
+    repository: file://./charts/nginx

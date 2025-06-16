@@ -1,0 +1,7 @@
+apiVersion: v2
+name: redis
+description: Redis session store.
+type: application
+version: 0.1.0
+appVersion: "8.0.2"
+icon: https://upload.wikimedia.org/wikipedia/commons/6/64/Logo-redis.svg

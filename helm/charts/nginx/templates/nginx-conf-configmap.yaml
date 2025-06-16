@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sso-gateway-nginx-config
+data:
+  nginx.conf: |
+
+        server {
+          listen 8080;
+          listen [::]:8080; # For IPv6, if desired
+
+          # Basic health check endpoint (essential for probes)
+          location /health {
+              access_log off;
+              add_header Content-Type text/plain;
+              return 200 "OK\n";
+          }
+
+          location ~ /\. {
+              deny all;
+          }
+        }

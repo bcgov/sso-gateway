@@ -1,0 +1,18 @@
+services:
+  sso-client:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sso-client-application
+    env_file:
+      - .env.local
+    # Mount your local keycloak-raw.txt file into the container
+    # Adjust the path after ':' to where your app expects it,
+    # or keep it consistent with your K8s setup (e.g., /etc/config/keycloak-raw.txt)
+    volumes:
+      - ./vault/secrets:/etc/config/config:ro
+    # --- TEMPORARY CHANGE FOR DEBUGGING ---
+    stdin_open: true     # Keep stdin open
+    tty: true            # Allocate a pseudo-TTY
+    ports:
+      - "3000:3000"

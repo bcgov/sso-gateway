@@ -1,0 +1,7 @@
+apiVersion: v2
+name: nginx
+description: NGINX reverse proxy.
+type: application
+version: 0.2.0
+appVersion: "1.25.5"
+icon: https://upload.wikimedia.org/wikipedia/commons/c/c5/Nginx_logo.svg

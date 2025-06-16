@@ -1,0 +1,20 @@
+[
+  {
+    "hostname": "app1.example.com",
+    "confidential-port": 0,
+    "auth-server-url": "https://keycloak.example.com/auth",
+    "realm": "standard",
+    "ssl-required": "external",
+    "client-id": "app1-client",
+    "client-secret": "client-secret-1"
+  },
+  {
+    "hostname": "app2.example.com",
+    "confidential-port": 0,
+    "auth-server-url": "https://keycloak.example.com/auth",
+    "realm": "standard",
+    "ssl-required": "external",
+    "client-id": "app2-client",
+    "client-secret": "client-secret-2"
+  }
+]
