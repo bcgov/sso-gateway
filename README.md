@@ -203,8 +203,6 @@ sequenceDiagram
 
 This repository contains Helm charts for deploying the application components.
 
-No problem! Setting up configuration values is a critical part of any deployment. I'll add a new section to the README specifically for configuring the SSO Client, detailing both its direct environment variables and the values retrieved from Vault.
-
 ---
 
 ## 4.1 SSO Client Configuration Values
