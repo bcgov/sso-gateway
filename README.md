@@ -1,6 +1,12 @@
 # Secure Web Application Architecture with BC Government Keycloak SSO
 
-Scalable NGINX-based reverse proxy architecture for web applications, with SSO client and session management. Can be integrated with the BC Government's Common Keycloak service for Single Sign-On (SSO).
+This repository contains the configurations and Kubernetes Helm charts to deploy an Nginx reverse proxy with SSO (Single Sign-On) gateway client integrated with the BC Government's [Common Hosted Single Sign-On (CSS)](https://bcgov.github.io/sso-requests/).
+
+-----
+
+## 1\. Project Overview
+
+This project provides a secure and managed way to expose a **web application** through an Nginx reverse proxy, which enforces authentication via a dedicated SSO Gateway Client. The SSO Client uses **Redis** for storing user session data. All components are deployed within an OpenShift environment using Helm charts.
 
 This architecture is designed to provide a secure, high-performance, and scalable foundation for web applications. By utilizing NGINX as a reverse proxy, we centralize request handling, enable SSL termination, and facilitate load balancing. The Node.js application focuses on business logic, offloading authentication to the BC Government's Common Keycloak service via OpenID Connect (OIDC). User sessions are managed efficiently and externalized to Redis, allowing for seamless scaling and resilience.
 
@@ -68,17 +74,6 @@ graph TD
 
 ```
 
-# SSO Gateway (Proxy + SSO Client)
-
-This repository contains the configurations and Kubernetes Helm charts to deploy an Nginx reverse proxy with SSO (Single Sign-On) gateway client integrated with the BC Government's [Common Hosted Single Sign-On (CSS)](https://bcgov.github.io/sso-requests/).
-
------
-
-## 1\. Project Overview
-
-This project provides a secure and managed way to expose a **web application** through an Nginx reverse proxy, which enforces authentication via a dedicated SSO Gateway Client. The SSO Client uses **Redis** for storing user session data. All components are deployed within an OpenShift environment using Helm charts.
-
------
 
 ### Authentication and Session Flow
 
