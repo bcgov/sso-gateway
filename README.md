@@ -26,7 +26,7 @@ OIDC Client that initiates authentication requests to Keycloak and processes the
 External, high-performance, in-memory data store for user sessions.
 
 
-## Architecture
+## SSO Gateway Architecture
 
 ```mermaid
 graph TD
@@ -91,36 +91,6 @@ graph TD
 12. **Token Validation/Refresh:** The Node.js application validates the Access Token. If expired, it uses the Refresh Token to obtain new Access and ID Tokens from Keycloak without user re-authentication.
 13. **Resource Access:** If the session and tokens are valid, the Node.js application grants access to the requested resources.
 
-### Setup Considerations
-
-#### BC Gov Keycloak Integration
-
-  * **Client Registration:** Your application must be registered as a client within the BC Government's Keycloak realm. You will need to obtain a `client_id` and `client_secret`.
-  * **Redirect URIs:** Configure all valid `redirect_uri`s for your application in Keycloak (e.g., `https://myapp.gov.bc.ca/auth/callback`).
-  * **Public/Confidential Client:** For Node.js (server-side), it's typically configured as a `confidential` client as it can securely store the `client_secret`.
-  * **Scope:** Define the necessary OIDC scopes (e.g., `openid`, `profile`, `email`) your application requires.
-
-#### NGINX Configuration
-
-  * **SSL/TLS:** Configure SSL certificates (e.g., from Let's Encrypt or BC Gov provided certificates) for your domain.
-  * **Proxy Pass:** Set up `proxy_pass` directives to forward requests to your Node.js application instances (or a load balancer).
-  * **HTTP Headers:** Ensure correct `X-Forwarded-For`, `X-Real-IP`, and `X-Forwarded-Proto` headers are passed to Node.js for accurate request context.
-  * **Error Pages:** Configure custom error pages.
-
-
-### SSO Client Configuration
-
-  * **OIDC Client Library:** Use a robust OIDC client library (uses `openid-client`) to handle the OIDC flow.
-  * **Environment Variables:** Store sensitive configuration like Keycloak `client_id`, `client_secret`, and Redis connection details as environment variables.
-  * **Session Middleware:** Integrate a session management middleware (e.g., `express-session` with a Redis store like `connect-redis`).
-  * **Token Management:** Implement logic to store, validate, and refresh Access Tokens using the Refresh Token.
-
------
-
-
-## Architecture
-
-The application stack consists of the following components and flow:
 
 
 ```mermaid
@@ -192,6 +162,31 @@ sequenceDiagram
 
 
 ```
+
+## Setup Considerations
+
+### BC Gov Keycloak Integration
+
+  * **Client Registration:** Your application must be registered as a client within the BC Government's Keycloak realm. You will need to obtain a `client_id` and `client_secret`.
+  * **Redirect URIs:** Configure all valid `redirect_uri`s for your application in Keycloak (e.g., `https://myapp.gov.bc.ca/auth/callback`).
+  * **Public/Confidential Client:** For Node.js (server-side), it's typically configured as a `confidential` client as it can securely store the `client_secret`.
+  * **Scope:** Define the necessary OIDC scopes (e.g., `openid`, `profile`, `email`) your application requires.
+
+### NGINX Configuration
+
+  * **SSL/TLS:** Configure SSL certificates (e.g., from Let's Encrypt or BC Gov provided certificates) for your domain.
+  * **Proxy Pass:** Set up `proxy_pass` directives to forward requests to your Node.js application instances (or a load balancer).
+  * **HTTP Headers:** Ensure correct `X-Forwarded-For`, `X-Real-IP`, and `X-Forwarded-Proto` headers are passed to Node.js for accurate request context.
+  * **Error Pages:** Configure custom error pages.
+
+
+### SSO Client Configuration
+
+  * **OIDC Client Library:** Use a robust OIDC client library (uses `openid-client`) to handle the OIDC flow.
+  * **Environment Variables:** Store sensitive configuration like Keycloak `client_id`, `client_secret`, and Redis connection details as environment variables.
+  * **Session Middleware:** Integrate a session management middleware (e.g., `express-session` with a Redis store like `connect-redis`).
+  * **Token Management:** Implement logic to store, validate, and refresh Access Tokens using the Refresh Token.
+
 -----
 
 ## Prerequisites
