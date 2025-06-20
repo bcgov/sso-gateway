@@ -4,7 +4,7 @@ This repository contains the configurations and Kubernetes Helm charts to deploy
 
 -----
 
-## 1\. Project Overview
+## Project Overview
 
 This project provides a secure and managed way to expose a **web application** through an Nginx reverse proxy, which enforces authentication via a dedicated SSO Gateway Client. The SSO Client uses **Redis** for storing user session data. All components are deployed within an OpenShift environment using Helm charts.
 
@@ -118,12 +118,13 @@ graph TD
 -----
 
 
-## 2\. Architecture
+## Architecture
 
 The application stack consists of the following components and flow:
 
 
 ```mermaid
+
 sequenceDiagram
     actor User
     participant Browser
@@ -134,8 +135,8 @@ sequenceDiagram
     participant Redis
     participant WA as Web Application
 
-    box "Initial Unauthenticated Access"
-        Browser->>OCR: 1. Request https://<app-host>/
+
+        Browser->>OCR: 1. Request https:app-host
         OCR->>Nginx: 2. Proxy HTTP request<br/>(X-Forwarded-Proto: https,<br/> Host: <app-host>)
         Nginx->>SSOC: 3. Authentication Subrequest to /auth/
         activate Nginx
@@ -168,9 +169,9 @@ sequenceDiagram
         deactivate SSOC
         Nginx-->>Browser: 18. HTTP 302 Redirect to original URL (e.g., https://<app-host>/)
         deactivate Nginx
-    end
+ 
 
-    box "Subsequent Authenticated Access"
+
         Browser->>OCR: 19. Request https://<app-host>/<path>
         OCR->>Nginx: 20. Proxy HTTP request<br/>(incl. Nginx Session Cookie)
         activate Nginx
@@ -188,11 +189,12 @@ sequenceDiagram
         deactivate WA
         Nginx-->>Browser: 27. Return Web Application Content
         deactivate Nginx
-    end
+
+
 ```
 -----
 
-## 3\. Prerequisites
+## Prerequisites
 
   * An active OpenShift cluster (or Kubernetes cluster with Ingress/Routes configured).
   * `oc` CLI tool (for OpenShift) or `kubectl` CLI tool (for Kubernetes).
@@ -202,7 +204,7 @@ sequenceDiagram
 
 -----
 
-## 4\. Deployment with Helm
+## Deployment with Helm
 
 This repository contains Helm charts for deploying the application components.
 
@@ -300,7 +302,7 @@ Each Helm chart (e.g., `sso-gateway-nginx`, `sso-gateway-client`, `sso-gateway-r
 
 -----
 
-## 5\. Container Details
+## Container Details
 
 ### Nginx Proxy Container (`sso-gateway-nginx`)
 
@@ -419,7 +421,7 @@ Each Helm chart (e.g., `sso-gateway-nginx`, `sso-gateway-client`, `sso-gateway-r
 
 -----
 
-## 6\. OpenShift Route Configuration
+## OpenShift Route Configuration
 
 The OpenShift Route exposes your Nginx proxy to the public internet and handles TLS termination.
 
@@ -434,7 +436,7 @@ The OpenShift Route exposes your Nginx proxy to the public internet and handles 
 
 -----
 
-## 7\. Keycloak / Identity Provider (IdP) Configuration
+## Keycloak / Identity Provider (IdP) Configuration
 
 Ensure your Keycloak Realm and Client are correctly set up:
 
@@ -449,7 +451,7 @@ Ensure your Keycloak Realm and Client are correctly set up:
 
 -----
 
-## 8\. Troubleshooting Common Issues
+## Troubleshooting Common Issues
 
 When debugging, always remember to:
 
@@ -468,11 +470,11 @@ When debugging, always remember to:
 
 -----
 
-## 9\. Contributing
+## Contributing
 
 TBD -- Instructions on how to contribute to this project.
 
-## 10\. License
+## License
 
 MIT License (2025)
 
