@@ -7,65 +7,69 @@ metadata:
     app.kubernetes.io/component: nginx-proxy
 data:
   server-blocks.conf: |
-      # Generate server blocks for each configured server domain
+    {{- if $.Values.serverBlocks }}
+    # Using custom server block defined in values.yaml
+    {{ $.Values.serverBlocks | nindent 4 }}
+    {{- else }}
+    # Generate server blocks for each configured server domain (default behavior)
 
-      {{- range $server := .Values.global.servers }}
-      server {
-          listen {{ $.Values.service.ports.https }};
-          listen [::]:{{ $.Values.service.ports.https }};
-          server_name {{ $server.domain }};
-          error_page 401 403 = @login_required;
-          port_in_redirect off;
+    {{- range $server := .Values.global.servers }}
+    server {
+        listen {{ $.Values.service.ports.https }};
+        listen [::]:{{ $.Values.service.ports.https }};
+        server_name {{ $server.domain }};
+        error_page 401 403 = @login_required;
+        port_in_redirect off;
 
-          # headers for reverse proxy and SSO
-          proxy_set_header X-Real-IP $remote_addr;
-          proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-          proxy_set_header X-Forwarded-Proto $scheme;
-          proxy_set_header X-Original-URI $request_uri;
-          proxy_set_header Host $http_host;
-          proxy_set_header X-Real-IP $remote_addr;
+        # headers for reverse proxy and SSO
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Original-URI $request_uri;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Real-IP $remote_addr;
 
-          proxy_connect_timeout       75s;
-          proxy_send_timeout          75s;
-          proxy_read_timeout          300s;
+        proxy_connect_timeout       75s;
+        proxy_send_timeout          75s;
+        proxy_read_timeout          300s;
 
-          location / {
-            auth_request /auth/;
-            auth_request_set $auth_status $upstream_status;
-            proxy_set_header Host {{ $server.domain }};
-            proxy_pass http://{{ $server.hostname }}/;
-            proxy_redirect http://{{ $server.hostname }}/ /;
-            proxy_redirect default;
-          }
-
-          location /auth/ {
-            internal;
-            proxy_pass_request_body off;
-            proxy_set_header Content-Length "";
-            proxy_set_header Authorization $http_authorization;
-            proxy_pass_header Authorization;
-            proxy_pass http://sso-gateway-client-svc/;
-            proxy_redirect http://sso-gateway-client-svc/ /;
-            proxy_redirect default;
-          }
-
-          location /sso-login {
-            proxy_set_header Host $host;
-            proxy_pass http://sso-gateway-client-svc/authn;
-            proxy_redirect http://sso-gateway-client-svc/ /;
-            proxy_redirect default;
-          }
-
-          location /sso {
-            proxy_set_header Host $host;
-            proxy_pass http://sso-gateway-client-svc/authn/callback;
-            proxy_redirect http://sso-gateway-client-svc/ /;
-            proxy_redirect default;
-          }
-
-          location @login_required {
-            return 302 /sso-login?relay=$request_uri;
-          }
+        location / {
+          auth_request /auth/;
+          auth_request_set $auth_status $upstream_status;
+          proxy_set_header Host {{ $server.domain }};
+          proxy_pass http://{{ $server.hostname }}/;
+          proxy_redirect http://{{ $server.hostname }}/ /;
+          proxy_redirect default;
         }
-        {{- end }}
-      
+
+        location /auth/ {
+          internal;
+          proxy_pass_request_body off;
+          proxy_set_header Content-Length "";
+          proxy_set_header Authorization $http_authorization;
+          proxy_pass_header Authorization;
+          proxy_pass http://sso-gateway-client-svc/;
+          proxy_redirect http://sso-gateway-client-svc/ /;
+          proxy_redirect default;
+        }
+
+        location /sso-login {
+          proxy_set_header Host $host;
+          proxy_pass http://sso-gateway-client-svc/authn;
+          proxy_redirect http://sso-gateway-client-svc/ /;
+          proxy_redirect default;
+        }
+
+        location /sso {
+          proxy_set_header Host $host;
+          proxy_pass http://sso-gateway-client-svc/authn/callback;
+          proxy_redirect http://sso-gateway-client-svc/ /;
+          proxy_redirect default;
+        }
+
+        location @login_required {
+          return 302 /sso-login?relay=$request_uri;
+        }
+      }
+      {{- end }}
+    {{- end }}

@@ -6,6 +6,8 @@ image:
   tag: latest
   pullPolicy: IfNotPresent
 
+serverBlocks: ""
+
 service:
   type: ClusterIP 
   ports:

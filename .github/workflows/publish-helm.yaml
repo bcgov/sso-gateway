@@ -1,0 +1,97 @@
+name: Publish Helm Chart to GHCR
+
+on:
+  push:
+    branches:
+      - main # Or your default branch like 'master' or 'develop'
+    paths:
+      # Adjust these paths to your actual chart location and workflow file
+      - 'helm/**'
+      - '.github/workflows/publish-helm.yaml'
+
+jobs:
+  publish:
+    name: Publish Helm Chart
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read   # Required to checkout the repository code
+      packages: write  # Required to push packages to GHCR
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Helm 3 (and verify version)
+        uses: azure/setup-helm@v1
+        with:
+          # Explicitly request a Helm 3 version that supports OCI push
+          version: 'v3.15.0'
+        id: setup_helm
+
+      - name: Verify Helm Version is 3.x
+        run: |
+          helm version --client
+          # Check if the client version string contains "v3."
+          helm version --client | grep "Version:\"v3\." || {
+            echo "Error: Helm 3 was not correctly installed. Found different version."
+            exit 1
+          }
+
+      - name: Clean Helm Cache and Ensure Home Directory
+        run: |
+          echo "Cleaning Helm cache directory: ~/.helm"
+          rm -rf ~/.helm || true # Remove the entire directory, ignore if it doesn't exist
+          mkdir -p ~/.helm/repository
+          touch ~/.helm/repository/repositories.yaml
+          touch ~/.helm/registry.json # This will be populated by helm registry login
+
+      - name: Login to GitHub Container Registry
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io \
+            --username ${{ github.actor }} \
+            --password-stdin
+
+      - name: Get Chart Version and Name
+        id: get_chart_info
+        run: |
+          CHART_NAME=$(yq e '.name' helm/Chart.yaml)
+          CHART_VERSION=$(yq e '.version' helm/Chart.yaml)
+          echo "Chart Name: $CHART_NAME"
+          echo "Chart Version: $CHART_VERSION"
+          echo "chart_name=$CHART_NAME" >> "$GITHUB_OUTPUT"
+          echo "chart_version=$CHART_VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Package Helm Chart
+        run: helm package helm
+
+      - name: Push Helm Chart to GHCR
+        run: |
+          CHART_PACKAGE_NAME="${{ steps.get_chart_info.outputs.chart_name }}-${{ steps.get_chart_info.outputs.chart_version }}.tgz"
+          CHART_OCI_PATH="oci://ghcr.io/${{ github.repository_owner }}/${{ steps.get_chart_info.outputs.chart_name }}"
+          echo "Pushing $CHART_PACKAGE_NAME to $CHART_OCI_PATH"
+          helm push "$CHART_PACKAGE_NAME" "$CHART_OCI_PATH"
+
+      # - name: Verify Helm Chart in GHCR (Optional)
+      #   # Use helm show all as a more reliable check than pull in CI
+      #   run: |
+      #     echo "Re-logging in to GHCR for verification..."
+      #     echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io \
+      #       --username ${{ github.actor }} \
+      #       --password-stdin
+          
+      #     CHART_NAME="${{ steps.get_chart_info.outputs.chart_name }}"
+      #     ORG_NAME="${{ github.repository_owner }}"
+      #     CHART_VERSION="${{ steps.get_chart_info.outputs.chart_version }}"
+
+      #     echo "Listing versions for oci://ghcr.io/$ORG_NAME/$CHART_NAME"
+      #     helm show all "oci://ghcr.io/$ORG_NAME/$CHART_NAME"
+          
+      #     echo "Attempting to pull oci://ghcr.io/$ORG_NAME/$CHART_NAME with version $CHART_VERSION"
+      #     helm pull "oci://ghcr.io/$ORG_NAME/$CHART_NAME" --version "$CHART_VERSION" --untar || { 
+      #       echo "Warning: Helm pull failed, but push and helm show all might have succeeded. Please check GHCR manually."
+      #       # Don't fail the workflow just for this verification step if other checks are positive.
+      #       exit 0 
+      #     }
+          
+      #     echo "Listing contents of the pulled chart directory:"
+      #     ls -R "$CHART_NAME"

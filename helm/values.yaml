@@ -235,6 +235,49 @@ nginx:
     tag: latest
     pullPolicy: Always
 
+  # Use serverBlocks to provide entire Nginx server block definitions
+  # This will completely override the default generated server blocks.
+  # Ensure proper Nginx syntax and indentation within this string.
+  serverBlocks: |
+    server {
+        listen 443 ssl;
+        listen [::]:443 ssl;
+        server_name my.custom.domain.com; # Example custom domain
+
+        # Example SSL/TLS configuration
+        ssl_certificate /etc/nginx/certs/my.custom.domain.com.crt;
+        ssl_certificate_key /etc/nginx/certs/my.custom.domain.com.key;
+        ssl_protocols TLSv1.2 TLSv1.3;
+        ssl_ciphers 'TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES128-GCM-SHA256';
+        ssl_prefer_server_ciphers on;
+
+        error_page 401 403 = @login_required;
+        port_in_redirect off;
+
+        proxy_connect_timeout       75s;
+        proxy_send_timeout          75s;
+        proxy_read_timeout          300s;
+
+        location / {
+          auth_request /auth/;
+          auth_request_set $auth_status $upstream_status;
+        }
+
+        location /auth/ {
+          internal;
+        }
+
+        location /sso-login {
+        }
+
+        location /sso {
+        }
+
+        location @login_required {
+          return 302 /sso-login?relay=$request_uri;
+        }
+    }
+
   service:
     type: ClusterIP 
     ports:
