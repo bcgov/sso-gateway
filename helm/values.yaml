@@ -240,8 +240,8 @@ nginx:
   # Ensure proper Nginx syntax and indentation within this string.
   serverBlocks: |
     server {
-        listen 443 ssl;
-        listen [::]:443 ssl;
+        listen 443;
+        listen [::]:443;
         server_name my.custom.domain.com; # Example custom domain
 
         # Example SSL/TLS configuration

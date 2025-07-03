@@ -215,7 +215,7 @@ let keycloakClient: Client;
     });
 
   } catch (error) {
-    console.error('Failed to discover Keycloak Issuer or connect to Redis:', error);
+    console.error('Failed to discover Keycloak Issuer and/or connect to Session Server:', error);
     process.exit(1);
   }
 })();

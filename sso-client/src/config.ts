@@ -28,7 +28,7 @@ export interface SSOConfig {
 
 // Resolve the configuration file path. Prioritize environment variable.
 console.log("Attempting to load configuration from path:", process.env.VAULT_CONFIG_PATH);
-const configFilePath = path.resolve(process.env.VAULT_CONFIG_PATH || "etc/config/config");
+const configFilePath = path.resolve(process.env.VAULT_CONFIG_PATH || "/vault");
 
 /**
  * Loads, extracts, and parses the Keycloak JSON configuration from the specified file.
@@ -85,11 +85,11 @@ async function loadAndParseKeycloakConfig(filePath: string): Promise<SSOConfig> 
       NGINX_PROXY_URL: process.env.NGINX_PROXY_URL || 'http://localhost:8080',
       SSO_CLIENT_HOST: process.env.SSO_CLIENT_HOST || 'localhost',
       SSO_CLIENT_PORT: Number(process.env.SSO_CLIENT_PORT) || 3000,
-      SSO_AUTH_SERVER_URL: configData[0]['keycloak']?.['auth-server-url'] || 'http://localhost:8080/auth',
+      SSO_AUTH_SERVER_URL: configData[0]['keycloak']?.['auth-server-url'] || 'http://localhost:8080',
       SSO_REALM: configData[0]['keycloak']?.realm || 'standard',
       SSO_CLIENT_ID: configData[0]['keycloak']?.['client-id'] || 'sso-client',
       SSO_CLIENT_SECRET: configData[0]['keycloak']?.['client-secret'] || '',
-      SSO_REDIRECT_URL: `https://${configData[0]['hostname']}/sso` || 'http://localhost:8080/authn/callback',
+      SSO_REDIRECT_URL: `https://${configData[0]['hostname']}/sso` || 'http://localhost:8080/sso',
       SSO_REDIS_SESSION_STORE_URL: process.env.REDIS_STORE_URL || 'redis://localhost:6379',
       SSO_REDIS_CONNECT_PASSWORD: process.env.REDIS_PASSWORD || '',
       SSO_SESSION_SECRET: configData[0]['keycloak']?.['session-secret'] || 'strong-default-secret-you-should-change',
