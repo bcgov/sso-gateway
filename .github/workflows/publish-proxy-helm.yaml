@@ -1,4 +1,4 @@
-name: Publish Helm Chart to GHCR
+name: Publish Proxy Helm Chart to GHCR
 
 on:
   push:
@@ -6,8 +6,8 @@ on:
       - main
     paths:
       # Adjust these paths to your actual chart location and workflow file
-      - 'helm/**'
-      - '.github/workflows/publish-helm.yaml'
+      - 'helm/charts/nginx/charts/nginx/**'
+      - '.github/workflows/publish--proxy-helm.yaml'
 
 jobs:
   publish:
@@ -41,9 +41,9 @@ jobs:
         run: |
           echo "Cleaning Helm cache directory: ~/.helm"
           rm -rf ~/.helm || true # Remove the entire directory, ignore if it doesn't exist
-          mkdir -p ~/.helm/repository
-          touch ~/.helm/repository/repositories.yaml
-          touch ~/.helm/registry.json # This will be populated by helm registry login
+          mkdir -p ~/.helm/charts/nginx/repository
+          touch ~/.helm/charts/nginx/repository/repositories.yaml
+          touch ~/.helm/charts/nginx/registry.json # This will be populated by helm registry login
 
       - name: Login to GitHub Container Registry
         run: |
@@ -54,8 +54,8 @@ jobs:
       - name: Get Chart Version and Name
         id: get_chart_info
         run: |
-          CHART_NAME=$(yq e '.name' helm/Chart.yaml)
-          CHART_VERSION=$(yq e '.version' helm/Chart.yaml)
+          CHART_NAME=$(yq e '.name' helm/charts/nginx/Chart.yaml)
+          CHART_VERSION=$(yq e '.version' helm/charts/nginx/Chart.yaml)
           echo "Chart Name: $CHART_NAME"
           echo "Chart Version: $CHART_VERSION"
           echo "chart_name=$CHART_NAME" >> "$GITHUB_OUTPUT"
