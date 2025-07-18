@@ -7,7 +7,7 @@ on:
     paths:
       # Adjust these paths to your actual chart location and workflow file
       - 'helm/charts/nginx/charts/nginx/**'
-      - '.github/workflows/publish--proxy-helm.yaml'
+      - '.github/workflows/publish-proxy-helm.yaml'
 
 jobs:
   publish:
