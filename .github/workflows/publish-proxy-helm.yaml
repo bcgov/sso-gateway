@@ -6,7 +6,7 @@ on:
       - main
     paths:
       # Adjust these paths to your actual chart location and workflow file
-      - 'helm/charts/nginx/charts/nginx/**'
+      - 'helm/charts/nginx/**'
       - '.github/workflows/publish-proxy-helm.yaml'
 
 jobs:
@@ -43,7 +43,7 @@ jobs:
           rm -rf ~/.helm || true # Remove the entire directory, ignore if it doesn't exist
           mkdir -p ~/.helm/charts/nginx/repository
           touch ~/.helm/charts/nginx/repository/repositories.yaml
-          touch ~/.helm/charts/nginx/registry.json # This will be populated by helm registry login
+          touch ~/.helm/charts/nginx/registry.json 
 
       - name: Login to GitHub Container Registry
         run: |
@@ -62,7 +62,7 @@ jobs:
           echo "chart_version=$CHART_VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Package Helm Chart
-        run: helm package helm
+        run: helm package helm/charts/nginx
 
       - name: Push Helm Chart to GHCR
         run: |
@@ -71,27 +71,4 @@ jobs:
           echo "Pushing $CHART_PACKAGE_NAME to $CHART_OCI_PATH"
           helm push "$CHART_PACKAGE_NAME" "$CHART_OCI_PATH"
 
-      # - name: Verify Helm Chart in GHCR (Optional)
-      #   # Use helm show all as a more reliable check than pull in CI
-      #   run: |
-      #     echo "Re-logging in to GHCR for verification..."
-      #     echo "${{ secrets.GITHUB_TOKEN }}" | helm registry login ghcr.io \
-      #       --username ${{ github.actor }} \
-      #       --password-stdin
-          
-      #     CHART_NAME="${{ steps.get_chart_info.outputs.chart_name }}"
-      #     ORG_NAME="${{ github.repository_owner }}"
-      #     CHART_VERSION="${{ steps.get_chart_info.outputs.chart_version }}"
-
-      #     echo "Listing versions for oci://ghcr.io/$ORG_NAME/$CHART_NAME"
-      #     helm show all "oci://ghcr.io/$ORG_NAME/$CHART_NAME"
-          
-      #     echo "Attempting to pull oci://ghcr.io/$ORG_NAME/$CHART_NAME with version $CHART_VERSION"
-      #     helm pull "oci://ghcr.io/$ORG_NAME/$CHART_NAME" --version "$CHART_VERSION" --untar || { 
-      #       echo "Warning: Helm pull failed, but push and helm show all might have succeeded. Please check GHCR manually."
-      #       # Don't fail the workflow just for this verification step if other checks are positive.
-      #       exit 0 
-      #     }
-          
-      #     echo "Listing contents of the pulled chart directory:"
-      #     ls -R "$CHART_NAME"
+      
