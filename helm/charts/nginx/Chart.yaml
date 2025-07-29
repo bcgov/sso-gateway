@@ -1,6 +1,6 @@
 apiVersion: v2
-name: nginx
-description: NGINX reverse proxy.
+name: isd-wiki-proxy
+description: NGINX web server.
 type: application
 version: 0.2.0
 appVersion: "1.25.5"
