@@ -3,23 +3,11 @@
 FROM node:20-alpine AS builder
 
 # Set working directory inside the container
+RUN mkdir -p /app
 WORKDIR /app
 
-# Copy package.json and package-lock.json first to leverage Docker cache
-# This means npm install only runs if these files change
-COPY package.json package-lock.json ./
-
-# Install dependencies (including dev dependencies needed for compilation)
-# We need dev dependencies for `typescript` itself.
-RUN npm install
-
-# Copy the TypeScript source code
-COPY src ./src
-COPY tsconfig.json ./
-
-# Build the TypeScript application
-# This command will execute `tsc` as defined in your package.json's "build" script
-RUN npm run build
+COPY . /app
+RUN npm install && npm run compile
 
 # Stage 2: Create the final production image
 # Use a slimmed-down Node.js image for production.

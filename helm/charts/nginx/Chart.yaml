@@ -1,5 +1,5 @@
 apiVersion: v2
-name: isd-wiki-proxy
+name: sso-gateway-proxy
 description: NGINX web server.
 type: application
 version: 0.2.0
